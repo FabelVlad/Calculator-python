@@ -71,10 +71,25 @@ class Store(metaclass=Singleton):
 
 
 class Command(metaclass=Singleton):
+    __help_template = "Available commands:\n" \
+                      "_/exit: use to exit the program\n" \
+                      "_/help: shows all available commands\n" \
+                      "_/del <variable_name>: use to remove a variable\n" \
+                      "_/info: use to get more information about mathematical expression requirements"
+    __info_template = "You have the opportunity to use variables:\n " \
+                      "create [a = 12 or num = 55],\n " \
+                      "the name of the variable should consist of only LATIN letters,\n " \
+                      "and the value of the variable should consist of only numbers.\n " \
+                      "reassign existing variables [a = 77]\n " \
+                      "delete variables [/del a].\n " \
+                      "The mathematical expression should consist of numbers in the decimal number system,\n" \
+                      "characters [-, +, *, /, ^] and variable names created in advance.\n" \
+                      "Repeating the characters [*, /, ^] two or more times is prohibited."
+
     def __init__(self, store_obj: Store):
         self.__store_obj = store_obj
         self.__command_dict = {'_/exit': lambda kwargs: exit(),
-                               '_/help': lambda kwargs: self.__help(),
+                               '_/help': lambda kwargs: self.__help(kwargs),
                                '_/del': lambda kwargs: self.__del_var(*kwargs['var']),
                                '_/info': lambda kwargs: self.__info(kwargs)}
 
@@ -82,10 +97,10 @@ class Command(metaclass=Singleton):
         return self.__store_obj.del_var(var)
 
     def __help(self, kwargs):
-        return 'text'  # todo add text
+        return self.__help_template
 
     def __info(self, kwargs):
-        return 'info'  # todo action
+        return self.__info_template
 
     def process(self, command: str, **kwargs):
         if command in self.__command_dict:
@@ -103,7 +118,7 @@ class Calculator(Store, Command):
     def _calculate(self, expr):
         try:
             expr = self.__check_expr(expr)
-            return eval(expr)  # todo check/contro eval
+            return eval(expr)
         except SyntaxError:
             return "SyntaxError. Please review your expression. \n" \
                    "To get more information use the <_/info> command."
@@ -120,13 +135,15 @@ class Calculator(Store, Command):
         return expr
 
     def __check_expr(self, expr):
+        if '//' in expr or '**' in expr:
+            raise SyntaxError
         variables = self.__get_var_names(expr)
         if variables:
             expr = self.__replace_var(expr, variables)
         return expr
 
     def perform_action(self, expr: str):
-        if expr.count('=') == 1 and len(expr.split()) == 3:
+        if expr.count('=') == 1 and len(expr.split()) <= 3:
             return self.store.assign(expr)
         elif len(expr.split()) == 1 and expr.isalpha():
             return self.store.get_var(expr)
