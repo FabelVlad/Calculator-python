@@ -15,7 +15,7 @@ class Singleton(type):
 class Display(metaclass=Singleton):
     __template = f"Hi, I'm Vladyslav <daprostovseeto@gmail.com> {ctime()}\n" \
                  "This calculator helps you calculate the value of an expression.\n" \
-                 "To get more information, use the </help> or </info> command"
+                 "To get more information, use the <_/help> or <_/info> command"
 
     def __init__(self):
         self.display(self.__template)
@@ -37,14 +37,18 @@ class Store(metaclass=Singleton):
         self.__var_dict = {}
 
     def assign(self, expr: str):
-        identifier, value = expr.replace(' ', '').split('=')
-        if identifier.isalpha():
-            if value.isalpha():
-                value = self.get_var(value)
-            if value.isnumeric():
-                return self.__set_var(identifier, value)
-        return "SyntaxError. The identifier or value does not meet the requirements. \n" \
-               "To get more information use the <_/info> command."
+        try:
+            identifier, value = expr.replace(' ', '').split('=')
+            if identifier.isalpha():
+                if value.isalpha():
+                    value = self.get_var(value)
+                if value.isnumeric():
+                    return self.__set_var(identifier, value)
+            return "SyntaxError. The identifier or value does not meet the requirements. \n" \
+                   "To get more information use the <_/info> command."
+        except ValueError:
+            return "SyntaxError. The identifier or value does not meet the requirements. \n" \
+                   "To get more information use the <_/info> command."  # todo review (template)
 
     def __set_var(self, key: str, value):
         self.__var_dict[key] = value
@@ -62,9 +66,6 @@ class Store(metaclass=Singleton):
             return f'Variable: {key} deleted successfully.'
         except KeyError:
             return f'This: {key} identifier does not exist.'
-        except TypeError:
-            return "SyntaxError. Please review your command. \n" \
-                   "To get more information use the <_/info> command."
 
     # def get_vars(self):
     #     return self.__var_dict
@@ -122,8 +123,11 @@ class Calculator(Store, Command):
         except SyntaxError:
             return "SyntaxError. Please review your expression. \n" \
                    "To get more information use the <_/info> command."
+        except ZeroDivisionError:
+            return "ZeroDivisionError. Please review your expression."
 
-    def __get_var_names(self, expr: str) -> list:
+    @staticmethod
+    def __get_var_names(expr: str) -> list:
         var_names = [char if char.isalpha() else ' ' for char in expr]
         return ''.join(var_names).split()
 
@@ -148,14 +152,22 @@ class Calculator(Store, Command):
         elif len(expr.split()) == 1 and expr.isalpha():
             return self.store.get_var(expr)
         elif '_/' in expr:
-            return self.command.process(expr.split()[0], var=expr.split()[1:])
+            try:
+                return self.command.process(expr.split()[0], var=expr.split()[1:])
+            except TypeError:
+                return "SyntaxError. Please review your command. \n" \
+                       "To get more information use the <_/info> command."
         else:
             return self._calculate(expr)
 
 
-if __name__ == '__main__':
+def main():
     dis = Display()
     calculator = Calculator()
     while True:
         data = dis.get_expr()
         dis.display(calculator.perform_action(data))
+
+
+if __name__ == '__main__':
+    main()
