@@ -1,4 +1,24 @@
 from time import ctime
+import logging
+
+
+class Logger:
+    def __init__(self, ):
+        pass
+
+    def __call__(self, *args, **kwargs):
+        return self.__make_logger()
+
+    @classmethod
+    def __make_logger(cls):
+        cls.logger_handler = logging.FileHandler('errors.log')
+        cls.logger_format = logging.Formatter(fmt='{asctime}  :  {lineno}  :  {funcName}  :  {message}', style='{')
+        cls.logger_handler.setFormatter(cls.logger_format)
+        cls.logger = logging.getLogger(__name__)
+        cls.logger.addHandler(cls.logger_handler)
+        cls.logger.setLevel('ERROR')
+        cls.logger.propagate = False
+        return cls.logger
 
 
 class Singleton(type):
@@ -54,6 +74,7 @@ class Store(metaclass=Singleton):
         try:
             return self.__var_dict[key]
         except KeyError:
+            logger.error(f'This: {key} identifier does not exist.')
             return f'This: {key} identifier does not exist.'
 
     def del_var(self, key):
@@ -61,8 +82,10 @@ class Store(metaclass=Singleton):
             self.__var_dict.pop(str(key))
             return f'Variable: {key} deleted successfully.'
         except KeyError:
+            logger.error(f'This: {key} identifier does not exist.')
             return f'This: {key} identifier does not exist.'
         except TypeError:
+            logger.error('Invalid command.')
             return "SyntaxError. Please review your command. \n" \
                    "To get more information use the <_/info> command."
 
@@ -90,7 +113,7 @@ class Command(metaclass=Singleton):
         self.__store_obj = store_obj
         self.__command_dict = {'_/exit': lambda kwargs: exit(),
                                '_/help': lambda kwargs: self.__help(kwargs),
-                               '_/del': lambda kwargs: self.__del_var(*kwargs['var']),
+                               '_/del': lambda kwargs: self.__del_var(*kwargs['var']),  # todo bug del
                                '_/info': lambda kwargs: self.__info(kwargs)}
 
     def __del_var(self, var: str) -> str:
@@ -106,6 +129,7 @@ class Command(metaclass=Singleton):
         if command in self.__command_dict:
             return self.__command_dict[command](kwargs)
         else:
+            logger.error('Unknown command.')
             return 'Unknown command.'
 
 
@@ -120,6 +144,7 @@ class Calculator(Store, Command):
             expr = self.__check_expr(expr)
             return eval(expr)
         except SyntaxError:
+            logger.error(f'SyntaxError: {expr}')
             return "SyntaxError. Please review your expression. \n" \
                    "To get more information use the <_/info> command."
 
@@ -154,6 +179,7 @@ class Calculator(Store, Command):
 
 
 if __name__ == '__main__':
+    logger = Logger()()
     dis = Display()
     calculator = Calculator()
     while True:
