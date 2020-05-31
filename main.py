@@ -1,22 +1,21 @@
 from time import ctime
 import logging
+from logging.config import fileConfig
+import sentry_sdk
 
 
 class Logger:
-    def __init__(self, ):
-        pass
+    def __init__(self, file_config_name='logging_config.ini'):
+        self.file_config_name = file_config_name
+        sentry_sdk.init("https://c1de779b351f4cff92134bb9fbcf41bc@o400546.ingest.sentry.io/5259069")  # todo async
 
     def __call__(self, *args, **kwargs):
-        return self.__make_logger()
+        return self.__make_logger(self.file_config_name)
 
     @classmethod
-    def __make_logger(cls):
-        cls.logger_handler = logging.FileHandler('errors.log')
-        cls.logger_format = logging.Formatter(fmt='{asctime}  :  {lineno}  :  {funcName}  :  {message}', style='{')
-        cls.logger_handler.setFormatter(cls.logger_format)
-        cls.logger = logging.getLogger(__name__)
-        cls.logger.addHandler(cls.logger_handler)
-        cls.logger.setLevel('ERROR')
+    def __make_logger(cls, file_config_name):
+        fileConfig(file_config_name)
+        cls.logger = logging.getLogger()  # todo __name__
         cls.logger.propagate = False
         return cls.logger
 
@@ -143,8 +142,9 @@ class Calculator(Store, Command):
         try:
             expr = self.__check_expr(expr)
             return eval(expr)
-        except SyntaxError:
+        except SyntaxError as er:
             logger.error(f'SyntaxError: {expr}')
+            sentry_sdk.capture_exception(error=er)
             return "SyntaxError. Please review your expression. \n" \
                    "To get more information use the <_/info> command."
 
