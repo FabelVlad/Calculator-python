@@ -111,22 +111,22 @@ class Command(metaclass=Singleton):
     def __init__(self, store_obj: Store):
         self.__store_obj = store_obj
         self.__command_dict = {'_/exit': lambda kwargs: exit(),
-                               '_/help': lambda kwargs: self.__help(kwargs),
-                               '_/del': lambda kwargs: self.__del_var(*kwargs['var']),  # todo bug del
-                               '_/info': lambda kwargs: self.__info(kwargs)}
+                               '_/help': lambda kwargs: self.__help_template,
+                               '_/del': lambda var: self.__store_obj.del_var(var),
+                               '_/info': lambda kwargs: self.__info_template}
 
-    def __del_var(self, var: str) -> str:
-        return self.__store_obj.del_var(var)
+    # def __del_var(self, var: str) -> str:
+    #     return self.__store_obj.del_var(var)
 
-    def __help(self, kwargs):
-        return self.__help_template
+    # def __help(self):
+    #     return self.__help_template
 
-    def __info(self, kwargs):
-        return self.__info_template
+    # def __info(self):
+    #     return self.__info_template
 
-    def process(self, command: str, **kwargs):
+    def execute_command(self, command: str, var: str):
         if command in self.__command_dict:
-            return self.__command_dict[command](kwargs)
+            return self.__command_dict[command](var)
         else:
             logger.error('Unknown command.')
             return 'Unknown command.'
@@ -172,8 +172,9 @@ class Calculator(Store, Command):
             return self.store.assign(expr)
         elif len(expr.split()) == 1 and expr.isalpha():
             return self.store.get_var(expr)
-        elif '_/' in expr:
-            return self.command.process(expr.split()[0], var=expr.split()[1:])
+        elif '_/' in expr and len(expr.split()) < 3:
+            command, var = expr.split()
+            return self.command.execute_command(command, var)
         else:
             return self._calculate(expr)
 
