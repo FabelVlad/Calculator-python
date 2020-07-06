@@ -129,6 +129,6 @@ dmypy.json
 .pyre/
 
 # local
-*.txt
+#*.txt
 *.ico
 .idea
